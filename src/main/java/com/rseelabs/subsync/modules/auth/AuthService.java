@@ -155,7 +155,7 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponse resetPassword(com.rseelabs.subsync.modules.auth.dto.ResetPasswordRequest request) {
+    public AuthResponse verifyForgetPasswordOtp(com.rseelabs.subsync.modules.auth.dto.VerifyResetOtpRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new com.rseelabs.subsync.core.exception.UserNotFoundException("User not found"));
         
@@ -167,9 +167,30 @@ public class AuthService {
             throw new com.rseelabs.subsync.core.exception.InvalidOtpException("Invalid OTP");
         }
         
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        String token = java.util.UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setResetPasswordTokenExpiry(LocalDateTime.now().plusMinutes(15));
         user.setOtp(null);
         user.setOtpExpiry(null);
+        userRepository.save(user);
+        
+        return AuthResponse.builder()
+                .token(token)
+                .message("OTP verified. Use this token to reset password.")
+                .build();
+    }
+
+    public AuthResponse resetPassword(com.rseelabs.subsync.modules.auth.dto.ResetPasswordRequest request) {
+        var user = userRepository.findByResetPasswordToken(request.getToken())
+                .orElseThrow(() -> new RuntimeException("Invalid or expired reset token"));
+        
+        if (user.getResetPasswordTokenExpiry() == null || user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Reset token has expired");
+        }
+        
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        user.setResetPasswordToken(null);
+        user.setResetPasswordTokenExpiry(null);
         userRepository.save(user);
         
         return AuthResponse.builder()

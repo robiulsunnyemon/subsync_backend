@@ -51,7 +51,13 @@ public class AuthController {
         return ResponseEntity.ok(authService.forgetPassword(request));
     }
 
-    @Operation(summary = "Reset password using OTP")
+    @Operation(summary = "Verify OTP for forgot password to get reset token")
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<AuthResponse> verifyResetOtp(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.VerifyResetOtpRequest request) {
+        return ResponseEntity.ok(authService.verifyForgetPasswordOtp(request));
+    }
+
+    @Operation(summary = "Reset password using reset token")
     @PostMapping("/reset-password")
     public ResponseEntity<AuthResponse> resetPassword(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.ResetPasswordRequest request) {
         return ResponseEntity.ok(authService.resetPassword(request));

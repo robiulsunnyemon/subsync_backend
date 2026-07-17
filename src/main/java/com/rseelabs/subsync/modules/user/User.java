@@ -35,7 +35,20 @@ public class User implements UserDetails {
     
     private String otp;
     
+    @Column(name = "otp_expiry")
     private LocalDateTime otpExpiry;
+
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    @Column(name = "reset_password_token_expiry")
+    private LocalDateTime resetPasswordTokenExpiry;
+    
+    @Column(name = "profile_image")
+    private String profileImage;
+    
+    @Column(length = 1000)
+    private String bio;
     
     private LocalDateTime createdAt;
     
