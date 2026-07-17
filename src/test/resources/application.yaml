@@ -1,0 +1,27 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+  mail:
+    host: localhost
+    port: 2525
+    username: dummy
+    password: dummy
+
+jwt:
+  secret: dummy-secret-key-that-needs-to-be-at-least-256-bits-long-for-hmac-sha-256-so-here-is-a-long-string
+  expiration: 86400000
+
+DB_URL: jdbc:h2:mem:testdb
+DB_USERNAME: sa
+DB_PASSWORD: 
+MAIL_HOST: localhost
+MAIL_PORT: 2525
+MAIL_USERNAME: dummy
+MAIL_PASSWORD: dummy
+JWT_SECRET: dummy-secret-key-that-needs-to-be-at-least-256-bits-long-for-hmac-sha-256-so-here-is-a-long-string
+JWT_EXPIRATION: 86400000
