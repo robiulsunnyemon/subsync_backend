@@ -9,6 +9,9 @@ COPY .mvn .mvn
 # Copy the pom.xml file
 COPY pom.xml .
 
+# Make mvnw executable (fixes Permission Denied on Linux/Coolify)
+RUN chmod +x mvnw
+
 # Build all the dependencies in preparation to go offline. 
 # This is a separate step so the dependencies will be cached unless 
 # the pom.xml file has changed.
