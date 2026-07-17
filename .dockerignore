@@ -3,7 +3,6 @@
 .dockerignore
 Dockerfile
 target/
-.mvn/
 mvnw.cmd
 .env
 *.md
