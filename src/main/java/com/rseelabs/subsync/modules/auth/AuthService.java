@@ -139,6 +139,17 @@ public class AuthService {
                 .build();
     }
 
+    public AuthResponse logout() {
+        org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User user) {
+            refreshTokenService.deleteByUserId(user.getId());
+        }
+        return AuthResponse.builder()
+                .token(null)
+                .message("Logout successful")
+                .build();
+    }
+
     public AuthResponse forgetPassword(com.rseelabs.subsync.modules.auth.dto.ForgetPasswordRequest request) {
         var user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new com.rseelabs.subsync.core.exception.UserNotFoundException("User not found"));

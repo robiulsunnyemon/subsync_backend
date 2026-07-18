@@ -33,6 +33,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Logout user and invalidate refresh token")
+    @PostMapping("/logout")
+    public ResponseEntity<AuthResponse> logout() {
+        return ResponseEntity.ok(authService.logout());
+    }
+
     @Operation(summary = "Verify OTP for email validation")
     @PostMapping("/verify-otp")
     public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.VerifyOtpRequest request) {
