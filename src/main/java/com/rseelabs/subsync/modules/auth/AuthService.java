@@ -224,8 +224,7 @@ public class AuthService {
 
     private AuthResponse handleGoogleLogin(String idTokenString) {
         try {
-            org.springframework.core.env.Environment env = com.rseelabs.subsync.SubsyncApplication.context.getEnvironment();
-            String clientId = env.getProperty("google.client.id");
+            String clientId = this.env.getProperty("google.client.id");
 
             com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
             com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
