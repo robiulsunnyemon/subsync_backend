@@ -33,6 +33,12 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @Operation(summary = "Logout user and invalidate refresh token")
+    @PostMapping("/logout")
+    public ResponseEntity<AuthResponse> logout() {
+        return ResponseEntity.ok(authService.logout());
+    }
+
     @Operation(summary = "Verify OTP for email validation")
     @PostMapping("/verify-otp")
     public ResponseEntity<AuthResponse> verifyOtp(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.VerifyOtpRequest request) {
@@ -67,5 +73,11 @@ public class AuthController {
     @PostMapping("/refresh-token")
     public ResponseEntity<com.rseelabs.subsync.modules.auth.dto.TokenRefreshResponse> refreshToken(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.TokenRefreshRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
+    }
+
+    @Operation(summary = "Login with social provider (Google/Apple)")
+    @PostMapping("/social-login")
+    public ResponseEntity<AuthResponse> socialLogin(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.SocialLoginRequest request) {
+        return ResponseEntity.ok(authService.socialLogin(request));
     }
 }
