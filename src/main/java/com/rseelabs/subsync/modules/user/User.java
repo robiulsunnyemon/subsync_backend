@@ -28,7 +28,7 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column
     private String password;
 
     private boolean isEmailVerified;
@@ -55,11 +55,20 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
     
+    @Enumerated(EnumType.STRING)
+    private AuthProvider provider;
+
+    @Column(name = "provider_id")
+    private String providerId;
+    
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         if (role == null) {
             role = Role.USER;
+        }
+        if (provider == null) {
+            provider = AuthProvider.LOCAL;
         }
     }
 

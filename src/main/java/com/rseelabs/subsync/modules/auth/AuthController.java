@@ -68,4 +68,10 @@ public class AuthController {
     public ResponseEntity<com.rseelabs.subsync.modules.auth.dto.TokenRefreshResponse> refreshToken(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.TokenRefreshRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
     }
+
+    @Operation(summary = "Login with social provider (Google/Apple)")
+    @PostMapping("/social-login")
+    public ResponseEntity<AuthResponse> socialLogin(@Valid @RequestBody com.rseelabs.subsync.modules.auth.dto.SocialLoginRequest request) {
+        return ResponseEntity.ok(authService.socialLogin(request));
+    }
 }

@@ -27,6 +27,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final EmailService emailService;
     private final RefreshTokenService refreshTokenService;
+    private final org.springframework.core.env.Environment env;
 
     private String generate4DigitOtp() {
         Random random = new Random();
@@ -212,5 +213,71 @@ public class AuthService {
                             .build();
                 })
                 .orElseThrow(() -> new com.rseelabs.subsync.core.exception.TokenRefreshException("Refresh token is not in database!"));
+    }
+
+    public AuthResponse socialLogin(com.rseelabs.subsync.modules.auth.dto.SocialLoginRequest request) {
+        if (request.getProvider() == com.rseelabs.subsync.modules.user.AuthProvider.GOOGLE) {
+            return handleGoogleLogin(request.getIdToken());
+        }
+        throw new RuntimeException("Unsupported social provider: " + request.getProvider());
+    }
+
+    private AuthResponse handleGoogleLogin(String idTokenString) {
+        try {
+            org.springframework.core.env.Environment env = com.rseelabs.subsync.SubsyncApplication.context.getEnvironment();
+            String clientId = env.getProperty("google.client.id");
+
+            com.google.api.client.http.HttpTransport transport = new com.google.api.client.http.javanet.NetHttpTransport();
+            com.google.api.client.json.JsonFactory jsonFactory = new com.google.api.client.json.gson.GsonFactory();
+
+            com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier verifier = new com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier.Builder(transport, jsonFactory)
+                    .setAudience(java.util.Collections.singletonList(clientId))
+                    .build();
+
+            com.google.api.client.googleapis.auth.oauth2.GoogleIdToken idToken = verifier.verify(idTokenString);
+            if (idToken != null) {
+                com.google.api.client.googleapis.auth.oauth2.GoogleIdToken.Payload payload = idToken.getPayload();
+                String email = payload.getEmail();
+                String name = (String) payload.get("name");
+                String pictureUrl = (String) payload.get("picture");
+                String googleId = payload.getSubject();
+
+                User user = userRepository.findByEmail(email).orElse(null);
+                if (user == null) {
+                    user = User.builder()
+                            .fullName(name)
+                            .email(email)
+                            .password(null) // Password is not required for social login
+                            .isEmailVerified(true)
+                            .role(com.rseelabs.subsync.modules.user.Role.USER)
+                            .provider(com.rseelabs.subsync.modules.user.AuthProvider.GOOGLE)
+                            .providerId(googleId)
+                            .profileImage(pictureUrl)
+                            .build();
+                    userRepository.save(user);
+                } else {
+                    if (user.getProvider() == null || user.getProvider() == com.rseelabs.subsync.modules.user.AuthProvider.LOCAL) {
+                        user.setProvider(com.rseelabs.subsync.modules.user.AuthProvider.GOOGLE);
+                        user.setProviderId(googleId);
+                        user.setEmailVerified(true);
+                        userRepository.save(user);
+                    }
+                }
+
+                var jwtToken = jwtUtils.generateToken(user);
+                var refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+                return AuthResponse.builder()
+                        .token(jwtToken)
+                        .refreshToken(refreshToken.getToken())
+                        .message("Social login successful")
+                        .build();
+
+            } else {
+                throw new RuntimeException("Invalid ID token.");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to verify social login token: " + e.getMessage());
+        }
     }
 }
