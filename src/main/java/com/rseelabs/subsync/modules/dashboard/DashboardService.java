@@ -32,7 +32,7 @@ public class DashboardService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add); // Assuming monthly normalization for simplicity in this MVP
                 
         LocalDate today = LocalDate.now();
-        List<Subscription> upcoming = subscriptionRepository.findUpcomingSubscriptions(user, today, today.plusDays(30));
+        List<Subscription> upcoming = subscriptionRepository.findUpcomingSubscriptions(user, today, today.plusDays(30), Subscription.SubscriptionStatus.ACTIVE);
         
         // Only return top 5 upcoming
         List<Subscription> topUpcoming = upcoming.stream()

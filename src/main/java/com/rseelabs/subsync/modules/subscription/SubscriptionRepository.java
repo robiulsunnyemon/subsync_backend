@@ -17,6 +17,6 @@ public interface SubscriptionRepository extends JpaRepository<Subscription, UUID
     
     List<Subscription> findAllByUserAndType(User user, Subscription.ExpenseType type);
 
-    @Query("SELECT s FROM Subscription s WHERE s.user = :user AND s.nextBillingDate >= :startDate AND s.nextBillingDate <= :endDate AND s.status = 'ACTIVE'")
-    List<Subscription> findUpcomingSubscriptions(@Param("user") User user, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT s FROM Subscription s WHERE s.user = :user AND s.nextBillingDate >= :startDate AND s.nextBillingDate <= :endDate AND s.status = :status")
+    List<Subscription> findUpcomingSubscriptions(@Param("user") User user, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("status") Subscription.SubscriptionStatus status);
 }
