@@ -11,7 +11,10 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
     show-sql: true
     properties:
       hibernate:
@@ -57,3 +60,8 @@ logging:
   level:
     root: INFO
     com.rseelabs.subsync: DEBUG
+
+tink:
+  client:
+    id: ${TINK_CLIENT_ID}
+    secret: ${TINK_CLIENT_SECRET}
