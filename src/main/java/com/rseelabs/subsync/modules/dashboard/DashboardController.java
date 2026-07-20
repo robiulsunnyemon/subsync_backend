@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/dashboard")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Dashboard", description = "Endpoints for user dashboard")
 public class DashboardController {
 
     private final DashboardService dashboardService;

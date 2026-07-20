@@ -18,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/reports")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Reports", description = "Endpoints for downloading reports")
 public class ReportController {
 
     private final ReportService reportService;

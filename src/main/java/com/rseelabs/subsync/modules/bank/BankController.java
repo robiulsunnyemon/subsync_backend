@@ -15,8 +15,9 @@ import java.util.UUID;
 import com.rseelabs.subsync.core.exception.ResourceNotFoundException;
 
 @RestController
-@RequestMapping("/api/v1/bank")
+@RequestMapping("/api/v1/banks")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Bank Connections", description = "Endpoints for managing bank connections")
 public class BankController {
 
     private final BankProviderFactory providerFactory;

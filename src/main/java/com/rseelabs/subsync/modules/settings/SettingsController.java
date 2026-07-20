@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/v1/settings")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Settings", description = "Endpoints for user settings")
 public class SettingsController {
 
     private final UserService userService;

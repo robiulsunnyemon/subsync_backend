@@ -17,6 +17,7 @@ import com.rseelabs.subsync.core.exception.UnauthorizedAccessException;
 @RestController
 @RequestMapping("/api/v1/subscriptions")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(name = "Subscriptions", description = "Endpoints for managing subscriptions")
 public class SubscriptionController {
 
     private final SubscriptionRepository subscriptionRepository;
