@@ -113,4 +113,17 @@ public class BankController {
         bankConnectionService.disconnectBank(id, userDetails.getUsername());
         return ResponseEntity.ok(Map.of("message", "Bank disconnected successfully"));
     }
+
+    // ─────────────────────────────────────────────
+    // 6. Get synced transactions for current user
+    // ─────────────────────────────────────────────
+    @GetMapping("/transactions")
+    public ResponseEntity<List<com.rseelabs.subsync.modules.bank.dto.TransactionResponse>> getTransactions(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<com.rseelabs.subsync.modules.bank.dto.TransactionResponse> transactions = bankConnectionService
+                .getTransactionsForUser(userDetails.getUsername());
+
+        return ResponseEntity.ok(transactions);
+    }
 }
