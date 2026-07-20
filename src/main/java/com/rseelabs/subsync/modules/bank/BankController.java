@@ -1,7 +1,11 @@
 package com.rseelabs.subsync.modules.bank;
+
+import com.rseelabs.subsync.modules.bank.dto.BankConnectionResponse;
+import com.rseelabs.subsync.modules.bank.dto.BankProviderDto;
 import com.rseelabs.subsync.modules.bank.provider.BankProviderFactory;
 import com.rseelabs.subsync.modules.user.User;
 import com.rseelabs.subsync.modules.user.UserRepository;
+import com.rseelabs.subsync.core.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
@@ -9,10 +13,9 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import com.rseelabs.subsync.core.exception.ResourceNotFoundException;
 
 @RestController
 @RequestMapping("/api/v1/banks")
@@ -22,56 +25,92 @@ public class BankController {
 
     private final BankProviderFactory providerFactory;
     private final UserRepository userRepository;
-    
-    // Should ideally be stored in DB, mocking repository for now
-    // private final BankConnectionRepository bankConnectionRepository; 
+    private final BankConnectionService bankConnectionService;
 
     @Value("${app.frontend.url:http://localhost:3000}")
     private String frontendUrl;
 
+    // ─────────────────────────────────────────────
+    // 1. Get Tink auth URL to redirect user to bank
+    // ─────────────────────────────────────────────
     @GetMapping("/auth-link")
     public ResponseEntity<Map<String, String>> getAuthLink(
             @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam String provider,
             @RequestParam(required = false, defaultValue = "GB") String market) {
+
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         BankConnection.BankProvider bankProvider = BankConnection.BankProvider.valueOf(provider.toUpperCase());
-        String redirectUri = frontendUrl + "/api/v1/bank/callback"; // Typically handled by backend directly or frontend deep link
-        
-        // Use user ID as state to track who initiated
-        String authLink = providerFactory.getProvider(bankProvider).generateAuthLink(redirectUri, user.getId().toString(), market);
+
+        // Deep link so Tink redirects back to the mobile app
+        String redirectUri = "subsync://bank-callback";
+
+        String authLink = providerFactory.getProvider(bankProvider)
+                .generateAuthLink(redirectUri, user.getId().toString(), market);
 
         return ResponseEntity.ok(Map.of("authUrl", authLink));
     }
 
+    // ─────────────────────────────────────────────
+    // 2. List available banks by country
+    // ─────────────────────────────────────────────
     @GetMapping("/providers")
-    public ResponseEntity<java.util.List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto>> getProviders(
+    public ResponseEntity<List<BankProviderDto>> getProviders(
             @RequestParam(required = false, defaultValue = "GB") String countryCode) {
-        java.util.List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto> providers = providerFactory.getProvider(BankConnection.BankProvider.TINK).fetchProviders(countryCode);
+
+        List<BankProviderDto> providers = providerFactory
+                .getProvider(BankConnection.BankProvider.TINK)
+                .fetchProviders(countryCode);
+
         return ResponseEntity.ok(providers);
     }
 
+    // ─────────────────────────────────────────────
+    // 3. Tink callback — exchange code & save to DB
+    //    Called by the mobile app after Tink redirect
+    // ─────────────────────────────────────────────
     @PostMapping("/callback")
-    public ResponseEntity<Void> handleCallback(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<BankConnectionResponse> handleCallback(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody Map<String, String> payload) {
+
         String code = payload.get("code");
-        String state = payload.get("state"); // This is the user ID
-        
-        Long userId = Long.valueOf(state);
-        User user = userRepository.findById(userId)
+        String institutionId = payload.get("institutionId");
+        String institutionName = payload.get("institutionName");
+
+        User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String accessToken = providerFactory.getProvider(BankConnection.BankProvider.TINK).exchangeAuthorizationCode(code);
+        BankConnectionResponse response = bankConnectionService
+                .handleCallback(code, user.getId().toString(), institutionId, institutionName);
 
-        // Store the BankConnection here...
-        // BankConnection connection = new BankConnection();
-        // connection.setUser(user);
-        // connection.setProvider(BankConnection.BankProvider.TINK);
-        // connection.setAccessToken(accessToken);
-        // connection.setStatus(BankConnection.ConnectionStatus.ACTIVE);
-        // bankConnectionRepository.save(connection);
+        return ResponseEntity.ok(response);
+    }
 
-        return ResponseEntity.ok().build();
+    // ─────────────────────────────────────────────
+    // 4. Get connected banks for current user
+    // ─────────────────────────────────────────────
+    @GetMapping("/my-connections")
+    public ResponseEntity<List<BankConnectionResponse>> getMyConnections(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        List<BankConnectionResponse> connections = bankConnectionService
+                .getMyConnections(userDetails.getUsername());
+
+        return ResponseEntity.ok(connections);
+    }
+
+    // ─────────────────────────────────────────────
+    // 5. Disconnect a bank
+    // ─────────────────────────────────────────────
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> disconnectBank(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID id) {
+
+        bankConnectionService.disconnectBank(id, userDetails.getUsername());
+        return ResponseEntity.ok(Map.of("message", "Bank disconnected successfully"));
     }
 }
