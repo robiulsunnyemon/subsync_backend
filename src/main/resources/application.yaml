@@ -16,6 +16,7 @@ spring:
     enabled: true
     baseline-on-migrate: true
     show-sql: true
+    clean-disabled: false
     clean-on-validation-error: true
     properties:
       hibernate:
