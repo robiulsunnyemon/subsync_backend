@@ -9,9 +9,11 @@ public interface OpenBankingProvider {
     
     BankConnection.BankProvider getProviderType();
 
-    String generateAuthLink(String redirectUri, String state);
+    String generateAuthLink(String redirectUri, String state, String market);
 
     String exchangeAuthorizationCode(String code);
+
+    List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto> fetchProviders(String countryCode);
 
     List<BankTransactionDTO> fetchTransactions(String accessToken, LocalDate from, LocalDate to);
 

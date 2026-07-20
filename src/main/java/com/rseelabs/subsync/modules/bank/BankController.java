@@ -30,7 +30,10 @@ public class BankController {
     private String frontendUrl;
 
     @GetMapping("/auth-link")
-    public ResponseEntity<Map<String, String>> getAuthLink(@AuthenticationPrincipal UserDetails userDetails, @RequestParam String provider) {
+    public ResponseEntity<Map<String, String>> getAuthLink(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam String provider,
+            @RequestParam(required = false, defaultValue = "GB") String market) {
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -38,9 +41,16 @@ public class BankController {
         String redirectUri = frontendUrl + "/api/v1/bank/callback"; // Typically handled by backend directly or frontend deep link
         
         // Use user ID as state to track who initiated
-        String authLink = providerFactory.getProvider(bankProvider).generateAuthLink(redirectUri, user.getId().toString());
+        String authLink = providerFactory.getProvider(bankProvider).generateAuthLink(redirectUri, user.getId().toString(), market);
 
         return ResponseEntity.ok(Map.of("authUrl", authLink));
+    }
+
+    @GetMapping("/providers")
+    public ResponseEntity<java.util.List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto>> getProviders(
+            @RequestParam(required = false, defaultValue = "GB") String countryCode) {
+        java.util.List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto> providers = providerFactory.getProvider(BankConnection.BankProvider.TINK).fetchProviders(countryCode);
+        return ResponseEntity.ok(providers);
     }
 
     @PostMapping("/callback")
