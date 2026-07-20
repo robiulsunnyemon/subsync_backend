@@ -71,6 +71,12 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
     }
 
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(org.springframework.web.servlet.resource.NoResourceFoundException ex, HttpServletRequest request) {
+        log.warn("Route not found: {}", ex.getMessage());
+        return buildErrorResponse(HttpStatus.NOT_FOUND, "API route not found: " + request.getRequestURI(), request);
+    }
+
     @ExceptionHandler(UnauthorizedAccessException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedAccessException(UnauthorizedAccessException ex, HttpServletRequest request) {
         log.warn("Unauthorized access: {}", ex.getMessage());
