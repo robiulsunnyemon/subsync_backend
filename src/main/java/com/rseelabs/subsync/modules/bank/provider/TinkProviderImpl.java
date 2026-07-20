@@ -88,39 +88,44 @@ public class TinkProviderImpl implements OpenBankingProvider {
 
     @Override
     public List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto> fetchProviders(String countryCode) {
-        String accessToken = getClientAccessToken();
-        String url = TINK_API_URL + "/api/v1/providers?market=" + countryCode;
-        
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        
-        HttpEntity<Void> request = new HttpEntity<>(headers);
-        ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
-        
+        // Due to Tink API requiring USER tokens for /api/v1/providers in the current app configuration,
+        // we are returning a mocked list of providers based on the selected market.
         List<com.rseelabs.subsync.modules.bank.dto.BankProviderDto> providers = new ArrayList<>();
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            List<Map<String, Object>> providersList = (List<Map<String, Object>>) response.getBody().get("providers");
-            if (providersList != null) {
-                for (Map<String, Object> p : providersList) {
-                    com.rseelabs.subsync.modules.bank.dto.BankProviderDto dto = com.rseelabs.subsync.modules.bank.dto.BankProviderDto.builder()
-                        .name((String) p.get("name"))
-                        .displayName((String) p.get("displayName"))
-                        .type((String) p.get("type"))
-                        .market(countryCode)
-                        .icon("B") // Default icon since Tink usually returns image URLs in 'images'
-                        .build();
-                    
-                    // try to extract an icon
-                    Map<String, Object> images = (Map<String, Object>) p.get("images");
-                    if (images != null && images.get("icon") != null) {
-                        dto.setIcon((String) images.get("icon"));
-                    }
-                    
-                    providers.add(dto);
-                }
-            }
+        
+        if ("GB".equalsIgnoreCase(countryCode)) {
+            providers.add(createMockDto("Revolut", "Revolut", "Global Fintech", "GB", "R"));
+            providers.add(createMockDto("Monzo", "Monzo", "United Kingdom", "GB", "M"));
+            providers.add(createMockDto("Barclays", "Barclays", "United Kingdom", "GB", "B"));
+            providers.add(createMockDto("HSBC", "HSBC", "United Kingdom", "GB", "H"));
+            providers.add(createMockDto("Lloyds", "Lloyds Bank", "United Kingdom", "GB", "L"));
+        } else if ("DE".equalsIgnoreCase(countryCode)) {
+            providers.add(createMockDto("N26", "N26", "Germany", "DE", "N"));
+            providers.add(createMockDto("Deutsche Bank", "Deutsche Bank", "Germany", "DE", "D"));
+            providers.add(createMockDto("Commerzbank", "Commerzbank", "Germany", "DE", "C"));
+        } else if ("FR".equalsIgnoreCase(countryCode)) {
+            providers.add(createMockDto("BNP Paribas", "BNP Paribas", "France", "FR", "B"));
+            providers.add(createMockDto("Credit Agricole", "Crédit Agricole", "France", "FR", "C"));
+            providers.add(createMockDto("Societe Generale", "Société Générale", "France", "FR", "S"));
+        } else if ("ES".equalsIgnoreCase(countryCode)) {
+            providers.add(createMockDto("Banco Santander", "Banco Santander", "Spain", "ES", "B"));
+            providers.add(createMockDto("BBVA", "BBVA", "Spain", "ES", "B"));
+            providers.add(createMockDto("CaixaBank", "CaixaBank", "Spain", "ES", "C"));
+        } else {
+            providers.add(createMockDto("Wise", "Wise", "International", countryCode, "W"));
+            providers.add(createMockDto("Revolut", "Revolut", "Global Fintech", countryCode, "R"));
         }
+
         return providers;
+    }
+
+    private com.rseelabs.subsync.modules.bank.dto.BankProviderDto createMockDto(String name, String displayName, String type, String market, String icon) {
+        return com.rseelabs.subsync.modules.bank.dto.BankProviderDto.builder()
+                .name(name)
+                .displayName(displayName)
+                .type(type)
+                .market(market)
+                .icon(icon)
+                .build();
     }
 
     @Override
