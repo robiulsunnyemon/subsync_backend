@@ -1,5 +1,4 @@
 package com.rseelabs.subsync.modules.bank;
-
 import com.rseelabs.subsync.modules.bank.provider.BankProviderFactory;
 import com.rseelabs.subsync.modules.user.User;
 import com.rseelabs.subsync.modules.user.UserRepository;

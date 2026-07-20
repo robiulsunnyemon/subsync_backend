@@ -24,6 +24,7 @@ public class Transaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bank_connection_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private BankConnection bankConnection;
 
     @Column(nullable = false)
