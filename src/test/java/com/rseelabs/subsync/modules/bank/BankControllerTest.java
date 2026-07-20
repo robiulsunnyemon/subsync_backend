@@ -63,11 +63,10 @@ public class BankControllerTest {
     void shouldGenerateAuthLink() throws Exception {
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(mockUser));
         when(providerFactory.getProvider(BankConnection.BankProvider.TINK)).thenReturn(tinkProvider);
-        when(tinkProvider.generateAuthLink(anyString(), eq(mockUser.getId().toString()))).thenReturn("https://auth.tink.com/link");
+        when(tinkProvider.generateAuthLink(anyString(), eq(mockUser.getId().toString()), eq("GB"))).thenReturn("https://auth.tink.com/link");
 
-        mockMvc.perform(get("/api/v1/bank/auth-link")
+        mockMvc.perform(get("/api/v1/banks/auth-link")
                 .param("provider", "TINK")
-                
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.authUrl").value("https://auth.tink.com/link"));
