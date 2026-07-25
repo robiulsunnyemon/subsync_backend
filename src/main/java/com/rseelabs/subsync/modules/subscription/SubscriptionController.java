@@ -22,6 +22,7 @@ public class SubscriptionController {
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
+    private final InvoiceService invoiceService;
 
     @GetMapping
     public ResponseEntity<List<Subscription>> getAllSubscriptions(@AuthenticationPrincipal UserDetails userDetails) {
@@ -82,5 +83,26 @@ public class SubscriptionController {
         subscriptionRepository.save(subscription);
         
         return ResponseEntity.ok(subscription);
+    }
+
+    @GetMapping(value = "/{id}/invoice", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> downloadInvoice(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID id) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
+
+        if (!subscription.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedAccessException("You don't have access to this subscription");
+        }
+
+        byte[] pdfBytes = invoiceService.generateInvoicePdf(subscription, user);
+
+        return ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"invoice-" + id + ".pdf\"")
+                .body(pdfBytes);
     }
 }
