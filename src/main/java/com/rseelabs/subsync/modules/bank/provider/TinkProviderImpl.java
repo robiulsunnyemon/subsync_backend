@@ -187,7 +187,17 @@ public class TinkProviderImpl implements OpenBankingProvider {
 
                             BigDecimal amount = BigDecimal.ZERO;
                             if (valueObj != null && valueObj.get("unscaledValue") != null) {
-                                int scale = valueObj.get("scale") != null ? ((Number) valueObj.get("scale")).intValue() : 2;
+                                Object scaleObj = valueObj.get("scale");
+                                int scale = 2;
+                                if (scaleObj instanceof Number) {
+                                    scale = ((Number) scaleObj).intValue();
+                                } else if (scaleObj != null) {
+                                    try {
+                                        scale = Integer.parseInt(scaleObj.toString());
+                                    } catch (NumberFormatException nfe) {
+                                        // default to 2
+                                    }
+                                }
                                 amount = new BigDecimal(valueObj.get("unscaledValue").toString()).movePointLeft(scale);
                             }
                             
