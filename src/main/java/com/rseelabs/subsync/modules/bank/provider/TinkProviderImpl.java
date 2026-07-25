@@ -149,6 +149,7 @@ public class TinkProviderImpl implements OpenBankingProvider {
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 List<Map<String, Object>> results = (List<Map<String, Object>>) response.getBody().get("results");
+                log.info("Fetched {} raw transactions from Tink API.", results != null ? results.size() : 0);
                 if (results != null) {
                     for (Map<String, Object> item : results) {
                         try {
@@ -159,7 +160,12 @@ public class TinkProviderImpl implements OpenBankingProvider {
                             String dateStr = dates != null ? (String) dates.get("booked") : null;
                             LocalDate date = dateStr != null ? LocalDate.parse(dateStr) : LocalDate.now();
                             
-                            if (date.isBefore(from) || date.isAfter(to)) continue;
+                            log.info("Raw Tink transaction: id={}, date={}, description={}", item.get("id"), dateStr, item.get("description"));
+                            
+                            if (date.isBefore(from) || date.isAfter(to)) {
+                                log.info("Filtered out transaction {} because date {} is not in range [{}, {}]", item.get("id"), date, from, to);
+                                continue;
+                            }
 
                             BigDecimal amount = BigDecimal.ZERO;
                             if (valueObj != null && valueObj.get("unscaledValue") != null) {
