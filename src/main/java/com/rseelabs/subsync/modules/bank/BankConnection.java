@@ -41,6 +41,7 @@ public class BankConnection {
 
     private String accountId; // The ID of the account at the provider
 
+    @Column(length = 2048)
     private String consentId; // Authorization consent ID
 
     @Enumerated(EnumType.STRING)
