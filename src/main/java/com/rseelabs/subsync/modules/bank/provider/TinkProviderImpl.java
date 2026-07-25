@@ -187,7 +187,7 @@ public class TinkProviderImpl implements OpenBankingProvider {
 
                             BigDecimal amount = BigDecimal.ZERO;
                             if (valueObj != null && valueObj.get("unscaledValue") != null) {
-                                int scale = valueObj.get("scale") != null ? (Integer) valueObj.get("scale") : 2;
+                                int scale = valueObj.get("scale") != null ? ((Number) valueObj.get("scale")).intValue() : 2;
                                 amount = new BigDecimal(valueObj.get("unscaledValue").toString()).movePointLeft(scale);
                             }
                             
@@ -204,7 +204,7 @@ public class TinkProviderImpl implements OpenBankingProvider {
                                     "Recurring"
                             ));
                         } catch (Exception parseEx) {
-                            // Skip unparseable single item
+                            log.error("Failed to parse transaction item: {}", parseEx.getMessage(), parseEx);
                         }
                     }
                 }
