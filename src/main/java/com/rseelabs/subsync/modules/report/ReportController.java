@@ -4,6 +4,7 @@ import com.rseelabs.subsync.core.exception.ResourceNotFoundException;
 import com.rseelabs.subsync.modules.user.User;
 import com.rseelabs.subsync.modules.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -11,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -24,24 +27,32 @@ public class ReportController {
     @GetMapping("/tax")
     public ResponseEntity<TaxReportResponse> getTaxReportData(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "2026") int year) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate == null) startDate = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+        if (endDate == null) endDate = LocalDate.of(LocalDate.now().getYear(), 12, 31);
+
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        return ResponseEntity.ok(reportService.getTaxReportData(user, year));
+        return ResponseEntity.ok(reportService.getTaxReportData(user, startDate, endDate));
     }
 
     @GetMapping("/tax/csv")
     public ResponseEntity<String> downloadTaxReportCsv(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "2026") int year) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate == null) startDate = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+        if (endDate == null) endDate = LocalDate.of(LocalDate.now().getYear(), 12, 31);
+
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
-        String csv = reportService.generateCsvReport(user, year);
+        String csv = reportService.generateCsvReport(user, startDate, endDate);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("text/csv"));
-        headers.setContentDispositionFormData("attachment", "tax_report_" + year + ".csv");
+        headers.setContentDispositionFormData("attachment", "tax_report_" + startDate + "_to_" + endDate + ".csv");
         
         return new ResponseEntity<>(csv, headers, HttpStatus.OK);
     }
@@ -49,15 +60,19 @@ public class ReportController {
     @GetMapping(value = "/tax/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
     public ResponseEntity<byte[]> downloadTaxReportPdf(
             @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(defaultValue = "2026") int year) {
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        if (startDate == null) startDate = LocalDate.of(LocalDate.now().getYear(), 1, 1);
+        if (endDate == null) endDate = LocalDate.of(LocalDate.now().getYear(), 12, 31);
+
         User user = userRepository.findByEmail(userDetails.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
-        byte[] pdfBytes = reportService.generatePdfReport(user, year);
+        byte[] pdfBytes = reportService.generatePdfReport(user, startDate, endDate);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "tax_report_" + year + ".pdf");
+        headers.setContentDispositionFormData("attachment", "tax_report_" + startDate + "_to_" + endDate + ".pdf");
         
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }

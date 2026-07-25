@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,7 @@ public class ReportService {
 
     private final SubscriptionRepository subscriptionRepository;
 
-    public TaxReportResponse getTaxReportData(User user, int year) {
+    public TaxReportResponse getTaxReportData(User user, LocalDate startDate, LocalDate endDate) {
         List<Subscription> userSubscriptions = subscriptionRepository.findAllByUser(user);
 
         // Filter only BUSINESS expenses
@@ -34,14 +35,16 @@ public class ReportService {
                 .filter(s -> s.getType() == Subscription.ExpenseType.BUSINESS && s.getStatus() == Subscription.SubscriptionStatus.ACTIVE)
                 .collect(Collectors.toList());
 
-        BigDecimal totalAnnualDeduction = BigDecimal.ZERO;
+        BigDecimal totalDeduction = BigDecimal.ZERO;
         List<Map<String, Object>> mappedSubs = new ArrayList<>();
+
+        double monthsInPeriod = Math.max(1.0, ChronoUnit.DAYS.between(startDate, endDate) / 30.4375);
 
         for (Subscription sub : businessSubs) {
             BigDecimal monthlyAmount = sub.getAmount() != null ? sub.getAmount() : BigDecimal.ZERO;
-            BigDecimal annualAmount = calculateAnnualAmount(monthlyAmount, sub.getCycle());
+            BigDecimal periodAmount = calculatePeriodAmount(monthlyAmount, sub.getCycle(), monthsInPeriod);
 
-            totalAnnualDeduction = totalAnnualDeduction.add(annualAmount);
+            totalDeduction = totalDeduction.add(periodAmount);
 
             Map<String, Object> map = new HashMap<>();
             map.put("id", sub.getId());
@@ -49,7 +52,7 @@ public class ReportService {
             map.put("category", "Software / Business");
             map.put("cycle", sub.getCycle().name());
             map.put("monthlyAmount", monthlyAmount);
-            map.put("annualTotal", annualAmount);
+            map.put("annualTotal", periodAmount);
             map.put("currency", sub.getCurrency() != null ? sub.getCurrency() : "EUR");
             map.put("icon", sub.getMerchantName() != null && !sub.getMerchantName().isEmpty() ? sub.getMerchantName().substring(0, 1).toUpperCase() : "B");
             
@@ -57,51 +60,61 @@ public class ReportService {
         }
 
         return TaxReportResponse.builder()
-                .year(year)
-                .totalDeductions(totalAnnualDeduction.setScale(2, RoundingMode.HALF_UP))
+                .startDate(startDate)
+                .endDate(endDate)
+                .totalDeductions(totalDeduction.setScale(2, RoundingMode.HALF_UP))
                 .subscriptions(mappedSubs)
                 .build();
     }
 
-    public String generateCsvReport(User user, int year) {
+    public String generateCsvReport(User user, LocalDate startDate, LocalDate endDate) {
         List<Subscription> businessSubs = subscriptionRepository.findAllByUser(user).stream()
                 .filter(s -> s.getType() == Subscription.ExpenseType.BUSINESS)
                 .collect(Collectors.toList());
 
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMM yyyy");
+        String periodStr = startDate.format(dtf) + " - " + endDate.format(dtf);
+
         StringBuilder csv = new StringBuilder();
-        csv.append("SubSync Tax Deduction Report - Year ").append(year).append("\n");
+        csv.append("SubSync Tax Deduction Report\n");
+        csv.append("Tax Period,").append(periodStr).append("\n");
         csv.append("Tax Payer,").append(escapeCsv(user.getFullName())).append(" (").append(user.getEmail()).append(")\n\n");
-        csv.append("Merchant,Billing Cycle,Category,Monthly Amount,Annualized Deduction,Currency,Status\n");
+        csv.append("Merchant,Billing Cycle,Category,Monthly Amount,Period Deduction,Currency,Status\n");
 
         BigDecimal totalDeduction = BigDecimal.ZERO;
+        double monthsInPeriod = Math.max(1.0, ChronoUnit.DAYS.between(startDate, endDate) / 30.4375);
 
         for (Subscription sub : businessSubs) {
             BigDecimal monthlyAmount = sub.getAmount() != null ? sub.getAmount() : BigDecimal.ZERO;
-            BigDecimal annualAmount = calculateAnnualAmount(monthlyAmount, sub.getCycle());
-            totalDeduction = totalDeduction.add(annualAmount);
+            BigDecimal periodAmount = calculatePeriodAmount(monthlyAmount, sub.getCycle(), monthsInPeriod);
+            totalDeduction = totalDeduction.add(periodAmount);
 
             csv.append(String.format("%s,%s,%s,%s,%s,%s,%s\n",
                     escapeCsv(sub.getMerchantName()),
                     sub.getCycle().name(),
                     sub.getType().name(),
                     monthlyAmount.toPlainString(),
-                    annualAmount.toPlainString(),
+                    periodAmount.toPlainString(),
                     sub.getCurrency(),
                     sub.getStatus().name()
             ));
         }
 
-        csv.append("\nTOTAL ANNUAL BUSINESS DEDUCTIONS,,,").append(totalDeduction.setScale(2, RoundingMode.HALF_UP).toPlainString()).append("\n");
+        csv.append("\nTOTAL PERIOD DEDUCTIONS,,,").append(totalDeduction.setScale(2, RoundingMode.HALF_UP).toPlainString()).append("\n");
         return csv.toString();
     }
 
-    public byte[] generatePdfReport(User user, int year) {
+    public byte[] generatePdfReport(User user, LocalDate startDate, LocalDate endDate) {
         List<Subscription> businessSubs = subscriptionRepository.findAllByUser(user).stream()
                 .filter(s -> s.getType() == Subscription.ExpenseType.BUSINESS && s.getStatus() == Subscription.SubscriptionStatus.ACTIVE)
                 .collect(Collectors.toList());
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd MMM yyyy");
+        String periodStr = startDate.format(dtf) + " to " + endDate.format(dtf);
+        double monthsInPeriod = Math.max(1.0, ChronoUnit.DAYS.between(startDate, endDate) / 30.4375);
 
         try {
             PdfWriter.getInstance(document, out);
@@ -116,7 +129,7 @@ public class ReportService {
 
             // Fonts
             Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22, primaryColor);
-            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, primaryColor);
+            Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, primaryColor);
             Font subHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, textColor);
             Font bodyFont = FontFactory.getFont(FontFactory.HELVETICA, 10, textColor);
             Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, textColor);
@@ -124,23 +137,23 @@ public class ReportService {
             // 1. Header Table
             PdfPTable headerTable = new PdfPTable(2);
             headerTable.setWidthPercentage(100);
-            headerTable.setWidths(new float[]{60, 40});
+            headerTable.setWidths(new float[]{55, 45});
 
             PdfPCell logoCell = new PdfPCell();
             logoCell.setBorder(Rectangle.NO_BORDER);
             logoCell.addElement(new Paragraph("SubSync", titleFont));
-            logoCell.addElement(new Paragraph("Annual Tax Deduction Report", FontFactory.getFont(FontFactory.HELVETICA, 10, new Color(100, 116, 139))));
+            logoCell.addElement(new Paragraph("Official Tax Deduction Summary", FontFactory.getFont(FontFactory.HELVETICA, 10, new Color(100, 116, 139))));
 
             PdfPCell dateCell = new PdfPCell();
             dateCell.setBorder(Rectangle.NO_BORDER);
             dateCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
             
-            Paragraph taxYearPara = new Paragraph("TAX YEAR " + year, headerFont);
-            taxYearPara.setAlignment(Element.ALIGN_RIGHT);
-            Paragraph datePara = new Paragraph("Generated: " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMM yyyy")), bodyFont);
+            Paragraph periodPara = new Paragraph("PERIOD: " + periodStr, headerFont);
+            periodPara.setAlignment(Element.ALIGN_RIGHT);
+            Paragraph datePara = new Paragraph("Generated: " + LocalDate.now().format(dtf), bodyFont);
             datePara.setAlignment(Element.ALIGN_RIGHT);
             
-            dateCell.addElement(taxYearPara);
+            dateCell.addElement(periodPara);
             dateCell.addElement(datePara);
 
             headerTable.addCell(logoCell);
@@ -152,12 +165,12 @@ public class ReportService {
             // 2. Summary Box
             BigDecimal totalDeductions = BigDecimal.ZERO;
             for (Subscription sub : businessSubs) {
-                totalDeductions = totalDeductions.add(calculateAnnualAmount(sub.getAmount(), sub.getCycle()));
+                totalDeductions = totalDeductions.add(calculatePeriodAmount(sub.getAmount(), sub.getCycle(), monthsInPeriod));
             }
 
             PdfPTable summaryBox = new PdfPTable(2);
             summaryBox.setWidthPercentage(100);
-            summaryBox.setWidths(new float[]{60, 40});
+            summaryBox.setWidths(new float[]{50, 50});
 
             PdfPCell userCell = new PdfPCell();
             userCell.setBackgroundColor(lightBgColor);
@@ -171,7 +184,7 @@ public class ReportService {
             totalCell.setBackgroundColor(lightBgColor);
             totalCell.setBorderColor(borderColor);
             totalCell.setPadding(12);
-            totalCell.addElement(new Paragraph("TOTAL BUSINESS DEDUCTIONS:", subHeaderFont));
+            totalCell.addElement(new Paragraph("TOTAL PERIOD DEDUCTIONS:", subHeaderFont));
             
             Paragraph totalAmtPara = new Paragraph("€" + totalDeductions.setScale(2, RoundingMode.HALF_UP), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, accentColor));
             totalCell.addElement(totalAmtPara);
@@ -192,7 +205,7 @@ public class ReportService {
             table.setWidthPercentage(100);
             table.setWidths(new float[]{40, 20, 20, 20});
 
-            String[] tableHeaders = {"Description / Merchant", "Cycle", "Monthly Amt", "Annualized Total"};
+            String[] tableHeaders = {"Description / Merchant", "Cycle", "Monthly Amt", "Period Total"};
             for (String h : tableHeaders) {
                 PdfPCell cell = new PdfPCell(new Phrase(h, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE)));
                 cell.setBackgroundColor(primaryColor);
@@ -206,7 +219,7 @@ public class ReportService {
 
             for (Subscription sub : businessSubs) {
                 BigDecimal monthly = sub.getAmount() != null ? sub.getAmount() : BigDecimal.ZERO;
-                BigDecimal annual = calculateAnnualAmount(monthly, sub.getCycle());
+                BigDecimal periodAmount = calculatePeriodAmount(monthly, sub.getCycle(), monthsInPeriod);
 
                 PdfPCell nameC = new PdfPCell(new Phrase(sub.getMerchantName(), boldFont));
                 nameC.setPadding(8);
@@ -222,7 +235,7 @@ public class ReportService {
                 monthC.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 monthC.setBorderColor(borderColor);
 
-                PdfPCell annualC = new PdfPCell(new Phrase(symbol + annual.setScale(2, RoundingMode.HALF_UP), boldFont));
+                PdfPCell annualC = new PdfPCell(new Phrase(symbol + periodAmount.setScale(2, RoundingMode.HALF_UP), boldFont));
                 annualC.setPadding(8);
                 annualC.setHorizontalAlignment(Element.ALIGN_RIGHT);
                 annualC.setBorderColor(borderColor);
@@ -236,7 +249,7 @@ public class ReportService {
             document.add(table);
 
             document.add(new Paragraph(" "));
-            Paragraph footer = new Paragraph("This document is an official summary of tax-deductible software and recurring business expenses generated by SubSync for accounting and tax return submission.", FontFactory.getFont(FontFactory.HELVETICA, 8, new Color(148, 163, 184)));
+            Paragraph footer = new Paragraph("This official tax report was generated by SubSync for accounting and tax return filing. Valid for UK HMRC, EU Finanzamt, and international tax compliance.", FontFactory.getFont(FontFactory.HELVETICA, 8, new Color(148, 163, 184)));
             footer.setAlignment(Element.ALIGN_CENTER);
             document.add(footer);
 
@@ -248,13 +261,13 @@ public class ReportService {
         return out.toByteArray();
     }
 
-    private BigDecimal calculateAnnualAmount(BigDecimal amount, Subscription.BillingCycle cycle) {
+    private BigDecimal calculatePeriodAmount(BigDecimal amount, Subscription.BillingCycle cycle, double monthsInPeriod) {
         if (amount == null) return BigDecimal.ZERO;
-        if (cycle == null) return amount.multiply(new BigDecimal("12"));
+        if (cycle == null) return amount.multiply(new BigDecimal(Double.toString(monthsInPeriod)));
         return switch (cycle) {
-            case WEEKLY -> amount.multiply(new BigDecimal("52"));
-            case MONTHLY -> amount.multiply(new BigDecimal("12"));
-            case YEARLY -> amount;
+            case WEEKLY -> amount.multiply(new BigDecimal(Double.toString((monthsInPeriod / 12.0) * 52.0)));
+            case MONTHLY -> amount.multiply(new BigDecimal(Double.toString(monthsInPeriod)));
+            case YEARLY -> amount.multiply(new BigDecimal(Double.toString(monthsInPeriod / 12.0)));
         };
     }
 
