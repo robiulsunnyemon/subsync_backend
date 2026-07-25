@@ -8,6 +8,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class TinkProviderImpl implements OpenBankingProvider {
 
@@ -183,7 +186,7 @@ public class TinkProviderImpl implements OpenBankingProvider {
                 }
             }
         } catch (Exception e) {
-            // Log & fallback to generated 90-day subscription transactions
+            log.error("Error fetching transactions from Tink: {}", e.getMessage(), e);
         }
 
         // If Tink returned empty list (e.g. sandbox or mock token) and mock transactions are enabled, generate realistic 90-day transactions
