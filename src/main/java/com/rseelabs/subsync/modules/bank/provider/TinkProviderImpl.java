@@ -145,6 +145,20 @@ public class TinkProviderImpl implements OpenBankingProvider {
             headers.setBearerAuth(accessToken);
 
             HttpEntity<Void> request = new HttpEntity<>(headers);
+            
+            // Diagnostics: log accounts associated with this session
+            try {
+                String accountsUrl = TINK_API_URL + "/data/v2/accounts";
+                ResponseEntity<Map> accountsResponse = restTemplate.exchange(accountsUrl, HttpMethod.GET, request, Map.class);
+                if (accountsResponse.getStatusCode().is2xxSuccessful() && accountsResponse.getBody() != null) {
+                    log.info("Tink accounts API response: {}", accountsResponse.getBody());
+                } else {
+                    log.warn("Tink accounts API returned status: {}", accountsResponse.getStatusCode());
+                }
+            } catch (Exception accEx) {
+                log.error("Failed to fetch accounts from Tink: {}", accEx.getMessage());
+            }
+
             ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
