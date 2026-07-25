@@ -62,4 +62,25 @@ public class SubscriptionController {
         
         return ResponseEntity.ok(subscription);
     }
+
+    @PutMapping("/{id}/category")
+    public ResponseEntity<Subscription> updateCategory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable UUID id,
+            @RequestParam String type) {
+        User user = userRepository.findByEmail(userDetails.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                
+        Subscription subscription = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Subscription not found"));
+                
+        if (!subscription.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedAccessException("You don't have access to this subscription");
+        }
+        
+        subscription.setType(Subscription.ExpenseType.valueOf(type.toUpperCase()));
+        subscriptionRepository.save(subscription);
+        
+        return ResponseEntity.ok(subscription);
+    }
 }
