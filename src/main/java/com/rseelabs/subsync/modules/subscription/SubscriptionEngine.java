@@ -87,7 +87,7 @@ public class SubscriptionEngine {
         };
     }
 
-    private Subscription.ExpenseType predictExpenseType(String merchantName) {
+    public Subscription.ExpenseType predictExpenseType(String merchantName) {
         if (merchantName == null) return Subscription.ExpenseType.UNCATEGORIZED;
         String name = merchantName.toLowerCase();
         
