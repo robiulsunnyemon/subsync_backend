@@ -75,6 +75,7 @@ public class DashboardService {
 
         return DashboardResponse.builder()
                 .fullName(user.getFullName())
+                .profileImage(user.getProfileImage())
                 .totalMonthlyExpense(totalExpense)
                 .activeSubscriptionsCount(activeSubscriptions.size())
                 .upcomingPayments(topUpcoming)
