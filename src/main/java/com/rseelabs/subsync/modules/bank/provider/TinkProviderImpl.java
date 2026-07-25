@@ -163,7 +163,10 @@ public class TinkProviderImpl implements OpenBankingProvider {
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 log.info("Tink transactions API raw response body: {}", response.getBody());
-                List<Map<String, Object>> results = (List<Map<String, Object>>) response.getBody().get("results");
+                List<Map<String, Object>> results = (List<Map<String, Object>>) response.getBody().get("transactions");
+                if (results == null) {
+                    results = (List<Map<String, Object>>) response.getBody().get("results");
+                }
                 log.info("Fetched {} raw transactions from Tink API.", results != null ? results.size() : 0);
                 if (results != null) {
                     for (Map<String, Object> item : results) {
