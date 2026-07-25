@@ -43,7 +43,7 @@ public class TinkProviderImpl implements OpenBankingProvider {
         if (market == null || market.isEmpty()) market = "GB";
         return String.format(
                 "https://link.tink.com/1.0/transactions/connect-accounts?" +
-                        "client_id=%s&redirect_uri=%s&market=%s&locale=en_US&state=%s",
+                        "client_id=%s&redirect_uri=%s&market=%s&locale=en_US&state=%s&scope=accounts:read,transactions:read",
                 clientId, redirectUri, market, state
         );
     }
