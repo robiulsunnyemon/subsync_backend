@@ -49,6 +49,12 @@ public class User implements UserDetails {
     
     @Column(length = 1000)
     private String bio;
+
+    @Column(name = "business_name")
+    private String businessName;
+
+    @Column(name = "vat_number")
+    private String vatNumber;
     
     private LocalDateTime createdAt;
     

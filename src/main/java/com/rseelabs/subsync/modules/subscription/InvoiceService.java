@@ -93,6 +93,12 @@ public class InvoiceService {
             billedToCell.addElement(new Paragraph("BILLED TO:", subHeaderFont));
             billedToCell.addElement(new Paragraph(user.getFullName() != null ? user.getFullName() : "Valued Customer", boldBodyFont));
             billedToCell.addElement(new Paragraph("Email: " + user.getEmail(), bodyFont));
+            if (user.getBusinessName() != null && !user.getBusinessName().isBlank()) {
+                billedToCell.addElement(new Paragraph("Company: " + user.getBusinessName(), boldBodyFont));
+            }
+            if (user.getVatNumber() != null && !user.getVatNumber().isBlank()) {
+                billedToCell.addElement(new Paragraph("VAT No: " + user.getVatNumber(), boldBodyFont));
+            }
             billedToCell.addElement(new Paragraph("Account: Verified User", bodyFont));
 
             // Status & Payment Details Box

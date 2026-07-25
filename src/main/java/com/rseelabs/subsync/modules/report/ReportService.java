@@ -179,6 +179,12 @@ public class ReportService {
             userCell.addElement(new Paragraph("TAX PAYER:", subHeaderFont));
             userCell.addElement(new Paragraph(user.getFullName() != null ? user.getFullName() : "Valued User", boldFont));
             userCell.addElement(new Paragraph("Email: " + user.getEmail(), bodyFont));
+            if (user.getBusinessName() != null && !user.getBusinessName().isBlank()) {
+                userCell.addElement(new Paragraph("Company: " + user.getBusinessName(), boldFont));
+            }
+            if (user.getVatNumber() != null && !user.getVatNumber().isBlank()) {
+                userCell.addElement(new Paragraph("VAT No: " + user.getVatNumber(), boldFont));
+            }
 
             PdfPCell totalCell = new PdfPCell();
             totalCell.setBackgroundColor(lightBgColor);

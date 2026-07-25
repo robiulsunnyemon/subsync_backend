@@ -15,4 +15,6 @@ public class UserProfileResponse {
     private String email;
     private String profileImage;
     private String bio;
+    private String businessName;
+    private String vatNumber;
 }

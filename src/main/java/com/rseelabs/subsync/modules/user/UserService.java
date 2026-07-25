@@ -27,6 +27,15 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        if (request.getFullName() != null && !request.getFullName().isBlank()) {
+            user.setFullName(request.getFullName());
+        }
+        if (request.getBusinessName() != null) {
+            user.setBusinessName(request.getBusinessName());
+        }
+        if (request.getVatNumber() != null) {
+            user.setVatNumber(request.getVatNumber());
+        }
         if (request.getBio() != null) {
             user.setBio(request.getBio());
         }
@@ -53,6 +62,8 @@ public class UserService {
                 .email(user.getEmail())
                 .profileImage(user.getProfileImage())
                 .bio(user.getBio())
+                .businessName(user.getBusinessName())
+                .vatNumber(user.getVatNumber())
                 .build();
     }
 }
