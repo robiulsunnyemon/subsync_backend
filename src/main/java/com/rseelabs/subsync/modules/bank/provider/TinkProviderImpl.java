@@ -24,6 +24,9 @@ public class TinkProviderImpl implements OpenBankingProvider {
     @Value("${tink.client.secret}")
     private String clientSecret;
 
+    @Value("${app.mock-transactions.enabled:false}")
+    private boolean mockTransactionsEnabled;
+
     private final RestTemplate restTemplate = new RestTemplate();
     private static final String TINK_API_URL = "https://api.tink.com";
 
@@ -183,8 +186,8 @@ public class TinkProviderImpl implements OpenBankingProvider {
             // Log & fallback to generated 90-day subscription transactions
         }
 
-        // If Tink returned empty list (e.g. sandbox or mock token), generate realistic 90-day transactions
-        if (dtos.isEmpty()) {
+        // If Tink returned empty list (e.g. sandbox or mock token) and mock transactions are enabled, generate realistic 90-day transactions
+        if (dtos.isEmpty() && mockTransactionsEnabled) {
             dtos.addAll(generateMock90DayTransactions(from, to));
         }
 

@@ -6,6 +6,9 @@ import com.rseelabs.subsync.modules.bank.dto.TransactionResponse;
 import com.rseelabs.subsync.modules.bank.provider.BankProviderFactory;
 import com.rseelabs.subsync.modules.user.User;
 import com.rseelabs.subsync.modules.user.UserRepository;
+import com.rseelabs.subsync.modules.subscription.Subscription;
+import com.rseelabs.subsync.modules.subscription.SubscriptionEngine;
+import com.rseelabs.subsync.modules.subscription.SubscriptionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,8 @@ public class BankConnectionService {
     private final TransactionRepository transactionRepository;
     private final BankProviderFactory providerFactory;
     private final UserRepository userRepository;
+    private final SubscriptionRepository subscriptionRepository;
+    private final SubscriptionEngine subscriptionEngine;
 
     /**
      * Called after Tink redirects back with an authorization code.
@@ -54,6 +59,18 @@ public class BankConnectionService {
 
         // Sync last 90 days of transactions
         syncLast90DaysTransactions(savedConnection, accessToken);
+
+        // Detect subscriptions based on synced transactions
+        List<Transaction> syncedTransactions = transactionRepository.findByBankConnection(savedConnection);
+        List<Subscription> detected = subscriptionEngine.detectSubscriptions(user, syncedTransactions);
+        for (Subscription sub : detected) {
+            boolean exists = subscriptionRepository.findAllByUser(user).stream()
+                    .anyMatch(s -> s.getMerchantName().equalsIgnoreCase(sub.getMerchantName()));
+            if (!exists) {
+                subscriptionRepository.save(sub);
+                log.info("Detected and saved new subscription: {} for user {}", sub.getMerchantName(), user.getEmail());
+            }
+        }
 
         return toResponse(savedConnection);
     }

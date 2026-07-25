@@ -13,4 +13,5 @@ public interface BankConnectionRepository extends JpaRepository<BankConnection, 
     List<BankConnection> findByUser(User user);
     List<BankConnection> findByUserAndStatus(User user, BankConnection.ConnectionStatus status);
     Optional<BankConnection> findByIdAndUser(UUID id, User user);
+    List<BankConnection> findByStatus(BankConnection.ConnectionStatus status);
 }
