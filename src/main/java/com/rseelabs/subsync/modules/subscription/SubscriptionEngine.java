@@ -67,7 +67,7 @@ public class SubscriptionEngine {
                             .currency(latest.getCurrency())
                             .cycle(cycle)
                             .nextBillingDate(nextBilling)
-                            .type(Subscription.ExpenseType.UNCATEGORIZED)
+                            .type(predictExpenseType(merchantName))
                             .status(Subscription.SubscriptionStatus.ACTIVE)
                             .build();
                             
@@ -85,5 +85,60 @@ public class SubscriptionEngine {
             case MONTHLY -> lastPayment.plusMonths(1);
             case YEARLY -> lastPayment.plusYears(1);
         };
+    }
+
+    private Subscription.ExpenseType predictExpenseType(String merchantName) {
+        if (merchantName == null) return Subscription.ExpenseType.UNCATEGORIZED;
+        String name = merchantName.toLowerCase();
+        
+        // Business keywords (software, travel, office supplies, utilities, telecom)
+        if (name.contains("aws") || 
+            name.contains("amazon web services") || 
+            name.contains("google cloud") || 
+            name.contains("github") || 
+            name.contains("slack") || 
+            name.contains("zoom") || 
+            name.contains("currys") || 
+            name.contains("office") || 
+            name.contains("adobe") || 
+            name.contains("broadband") || 
+            name.contains("gas") || 
+            name.contains("electricity") || 
+            name.contains("telecom") || 
+            name.contains("rail") || 
+            name.contains("railway") || 
+            name.contains("transit") || 
+            name.contains("b&q") || 
+            name.contains("vodafone") || 
+            name.contains("tfl")) {
+            return Subscription.ExpenseType.BUSINESS;
+        }
+        
+        // Personal keywords (entertainment, food, personal health, housing, insurance)
+        if (name.contains("netflix") || 
+            name.contains("spotify") || 
+            name.contains("itunes") || 
+            name.contains("youtube") || 
+            name.contains("disney") || 
+            name.contains("hulu") || 
+            name.contains("lidl") || 
+            name.contains("sainsbury") || 
+            name.contains("tesco") || 
+            name.contains("fresh") || 
+            name.contains("pizza") || 
+            name.contains("mcdonald") || 
+            name.contains("pret") || 
+            name.contains("wetherspoon") || 
+            name.contains("specsavers") || 
+            name.contains("h&m") || 
+            name.contains("rent") || 
+            name.contains("salary") || 
+            name.contains("withdrawal") || 
+            name.contains("insurance") || 
+            name.contains("savings")) {
+            return Subscription.ExpenseType.PERSONAL;
+        }
+        
+        return Subscription.ExpenseType.UNCATEGORIZED;
     }
 }
