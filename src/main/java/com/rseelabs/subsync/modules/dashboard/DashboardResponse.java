@@ -23,4 +23,6 @@ public class DashboardResponse {
     private BigDecimal businessExpense;
     @JsonProperty("personalExpense")
     private BigDecimal personalExpense;
+    @JsonProperty("profileImage")
+    private String profileImage;
 }
